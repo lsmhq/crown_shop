@@ -612,6 +612,12 @@
         const launched = prepared.then((pre) => update.launchUpdater(pre));
         const info = await launched;
         json(res, { ok: true, version: info.ver, message: "更新已下载，程序将自动重启完成更新" });
+        setTimeout(() => {
+          try {
+            process.exit(0);
+          } catch (e) {
+          }
+        }, 6000);
       }).catch((e) => json(res, { error: e.message }, 500));
     }
   };
