@@ -69,7 +69,9 @@
           </div>
         </header>
         <main class="content">
-          <component :is="'page-' + page"></component>
+          <transition :name="tranClass" mode="out-in">
+            <component :is="'page-' + page" :key="page"></component>
+          </transition>
         </main>
       </div>
     </div>

@@ -437,6 +437,21 @@ table.table {
 .split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
 @media (max-width: 1100px) { .split { grid-template-columns: 1fr; } .chart-grid { grid-template-columns: 1fr; } }
 
+/* ---------- page transitions ---------- */
+.content { min-height: 0; }
+.page-fade-enter-active { transition: opacity 0.22s ease; }
+.page-fade-enter-from { opacity: 0; }
+.page-fade-leave-active { transition: opacity 0.1s ease; }
+.page-fade-leave-to { opacity: 0; }
+.page-slide-enter-active { transition: opacity 0.24s ease, transform 0.24s ease; }
+.page-slide-enter-from { opacity: 0; transform: translateX(18px); }
+.page-slide-leave-active { transition: opacity 0.1s ease; }
+.page-slide-leave-to { opacity: 0; }
+.page-zoom-enter-active { transition: opacity 0.24s ease, transform 0.24s ease; }
+.page-zoom-enter-from { opacity: 0; transform: scale(0.97); }
+.page-zoom-leave-active { transition: opacity 0.1s ease; }
+.page-zoom-leave-to { opacity: 0; }
+
 /* ---------- dashboard widgets ---------- */
 .widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 @media (max-width: 1100px) { .widget-grid { grid-template-columns: 1fr; } }

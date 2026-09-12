@@ -13,6 +13,16 @@ const SettingsPage = {
             <input class="input" type="number" min="0" v-model.number="form.autoBackupDays">
             <div class="muted" style="font-size:11px;margin-top:4px">设置 0 关闭自动备份，每次启动时检查是否超过间隔自动备份。</div>
           </div>
+          <div class="form-item">
+            <label>页面切换动画</label>
+            <select class="select" v-model="form.pageTransition">
+              <option value="fade">渐显</option>
+              <option value="slide">左滑渐入</option>
+              <option value="zoom">缩放渐入</option>
+              <option value="none">无</option>
+            </select>
+            <div class="muted" style="font-size:11px;margin-top:4px">切换页面时的过渡效果，在「系统设置」保存后生效。</div>
+          </div>
         </div>
         <div style="margin-top:18px;display:flex;gap:10px;align-items:center">
           <button class="btn btn-primary" :disabled="saving" @click="save">{{ saving ? '保存中…' : '保存设置' }}</button>
@@ -198,6 +208,7 @@ const SettingsPage = {
         await api('/api/settings', { method: 'PUT', body: {
           shopName: this.form.shopName.trim(),
           autoBackupDays: this.form.autoBackupDays,
+          pageTransition: this.form.pageTransition,
         } });
         this.savedMsg = '已保存';
         setTimeout(() => { this.savedMsg = ''; }, 2000);

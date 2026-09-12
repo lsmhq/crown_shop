@@ -31,6 +31,10 @@ const app = createApp({
   },
   computed: {
     currentMenu() { return this.menus.find((m) => m.key === this.page) || this.menus[0]; },
+    tranClass() {
+      const m = { none: '', fade: 'page-fade', slide: 'page-slide', zoom: 'page-zoom' };
+      return m[this.app.settings.pageTransition] || 'page-fade';
+    },
     rateText() {
       if (!this.rateInfo.rate) return '--';
       const n = Number(this.rateInfo.rate);
@@ -49,7 +53,19 @@ const app = createApp({
     },
   },
   methods: {
-    goto(key) { this.page = key; },
+    goto(key) {
+      if (!this.menus.some((m) => m.key === key)) return;
+      this.page = key;
+      const h = '#/' + key;
+      if (location.hash !== h) {
+        try { location.hash = h; } catch (e) { /* ignore */ }
+      }
+    },
+    pageFromHash() {
+      const k = (location.hash || '').replace(/^#\/?/, '').trim();
+      return this.menus.some((m) => m.key === k) ? k : 'dashboard';
+    },
+    onHashChange() { this.page = this.pageFromHash(); },
     toggleDark() {
       this.dark = !this.dark;
       document.documentElement.classList.toggle('dark', this.dark);
@@ -116,6 +132,8 @@ const app = createApp({
     },
   },
   created() {
+    this.page = this.pageFromHash();
+    window.addEventListener('hashchange', this.onHashChange);
     this.loadRate();
     this.loadBootstrap().then(() => {
       if (this.app.settings.autoUpdate === true) this.silentUpdateCheck();

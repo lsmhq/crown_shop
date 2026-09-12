@@ -50,11 +50,11 @@ const DashboardPage = {
       </div>
 
       <div class="chart-grid">
-        <div class="card full">
+        <div class="card">
           <div class="card-title">近30天销售趋势</div>
           <div ref="saleChart" style="height:320px"></div>
         </div>
-        <div class="card full">
+        <div class="card">
           <div class="card-title">货源销售占比（销售额）</div>
           <div ref="pieChart" style="height:300px"></div>
         </div>
