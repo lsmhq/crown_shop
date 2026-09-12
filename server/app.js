@@ -709,6 +709,10 @@
     });
   }
   async function handle(req, res) {
+    try {
+      res.setHeader("x-dz-app", "local_shop");
+    } catch (e) {
+    }
     const u = url.parse(req.url, true);
     const p = u.pathname;
     const method = req.method;
@@ -734,6 +738,61 @@
     }
     return serveStatic(res, p);
   }
+  function openBrowser(target) {
+    try {
+      if (process.platform === "win32") {
+        spawn("cmd", ["/c", "start", "", target], { windowsHide: true, detached: true }).unref();
+      } else if (process.platform === "darwin") {
+        spawn("open", [target], { detached: true }).unref();
+      } else {
+        spawn("xdg-open", [target], { detached: true }).unref();
+      }
+    } catch (e) {
+      log("打开浏览器失败: " + e.message, "warn");
+    }
+  }
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  function probeInstance(port) {
+    return new Promise((resolve) => {
+      const req = http.get({ host: "127.0.0.1", port, path: "/api/bootstrap", timeout: 1500 }, (res) => {
+        const mine = String(res.headers["x-dz-app"] || "") === "local_shop";
+        if (mine) {
+          res.resume();
+          res.on("end", () => resolve(true));
+          res.on("close", () => resolve(true));
+          return;
+        }
+        let body = "";
+        res.on("data", (c) => {
+          body += c;
+          if (body.length > 8192) body = body.slice(-8192);
+        });
+        res.on("end", () => resolve(body.includes('"settings"') && body.includes('"products"')));
+      });
+      req.on("timeout", () => {
+        req.destroy();
+        resolve(false);
+      });
+      req.on("error", () => resolve(false));
+    });
+  }
+  async function probeExisting(busy) {
+    for (let i = 0; i < 3; i++) {
+      if (await probeInstance(busy)) return true;
+      await sleep(200);
+    }
+    return false;
+  }
+  async function ensureSingle(port2) {
+    if (process.env.DZ_ALLOW_MULTI === "1") return false;
+    const running = await probeInstance(port2);
+    if (running) {
+      log("检测到程序已在运行，直接打开网站（不再重复启动）");
+      openBrowser("http://127.0.0.1:" + port2 + "/");
+      return true;
+    }
+    return false;
+  }
   function start(port2) {
     db.load();
     db.autoBackupCheck();
@@ -741,8 +800,14 @@
     const base = port2 || 8765;
     function listen(attempt) {
       const prt = base + (attempt || 0);
-      server.once("error", (err) => {
+      server.once("error", async (err) => {
         if (err.code === "EADDRINUSE" && (attempt || 0) < 10) {
+          if (process.env.DZ_ALLOW_MULTI !== "1" && (await probeExisting(prt))) {
+            log("端口 " + prt + " 已是本程序实例，打开网站后退出");
+            openBrowser("http://127.0.0.1:" + prt + "/");
+            setTimeout(() => process.exit(0), 800);
+            return;
+          }
           log("端口 " + prt + " 被占用，尝试 " + (prt + 1));
           listen((attempt || 0) + 1);
         } else {
@@ -764,19 +829,6 @@
     listen(0);
     return server;
   }
-  function openBrowser(target) {
-    try {
-      if (process.platform === "win32") {
-        spawn("cmd", ["/c", "start", "", target], { windowsHide: true, detached: true }).unref();
-      } else if (process.platform === "darwin") {
-        spawn("open", [target], { detached: true }).unref();
-      } else {
-        spawn("xdg-open", [target], { detached: true }).unref();
-      }
-    } catch (e) {
-      log("打开浏览器失败: " + e.message, "warn");
-    }
-  }
   process.on("uncaughtException", (e) => {
     log("未捕获异常: " + e.stack, "error");
   });
@@ -784,5 +836,5 @@
     log("收到 Ctrl+C，退出");
     process.exit(0);
   });
-  module.exports = { start, handle };
+  module.exports = { start, handle, ensureSingle };
 
