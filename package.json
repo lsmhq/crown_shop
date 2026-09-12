@@ -1,0 +1,21 @@
+{
+  "name": "local_shop",
+  "version": "1.0.0",
+  "description": "本地商品-订单管理（售货员用）",
+  "main": "server/main.js",
+  "scripts": {
+    "start": "node server/main.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "echarts": "^6.1.0",
+    "esbuild": "^0.28.2",
+    "local_shop": "file:",
+    "postject": "^1.0.0-alpha.6",
+    "vue": "^3.5.42",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "rcedit": "^4.0.1"
+  }
+}

@@ -1,0 +1,103 @@
+name: build-release
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Compute version
+        id: ver
+        shell: pwsh
+        run: |
+          $date = (Get-Date).ToString('yyyyMMdd')
+          $v = "1.$date.$env:GITHUB_RUN_NUMBER"
+          Write-Output "version=$v"
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Generate app icon
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File build/make-icon.ps1
+
+      - name: Bundle server code
+        env:
+          PACKAGE_BUILD_VERSION: ${{ steps.ver.outputs.version }}
+        run: node build/bundle.js
+
+      - name: Generate SEA blob
+        run: node --experimental-sea-config build/sea-config.json
+
+      - name: Copy node.exe
+        shell: pwsh
+        run: |
+          $node = (Get-Command node).Source
+          Copy-Item $node build/店长宝.exe -Force
+          Write-Output "copied from $node"
+
+      - name: Set exe icon
+        shell: pwsh
+        run: node build/set-icon.js build/店长宝.exe build/12m-bundle-icon-W101.ico
+
+      - name: Inject SEA blob
+        shell: pwsh
+        run: |
+          npx postject "build/店长宝.exe" NODE_SEA_BLOB dist/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+          if ($LASTEXITCODE -ne 0) {
+            npx postject "build/店长宝.exe" NODE_SEA_BLOB dist/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 --no-header-strip
+          }
+
+      - name: Switch to GUI subsystem
+        shell: pwsh
+        run: node build/fix-gui.js build/店长宝.exe
+
+      - name: Package zip
+        id: pkg
+        shell: pwsh
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          New-Item -ItemType Directory -Force dist/pkg | Out-Null
+          Copy-Item build/店长宝.exe dist/pkg/店长宝.exe -Force
+          Copy-Item public dist/pkg/public -Recurse -Force
+          $zip = "dist/crown-shop-win-x64-v$v.zip"
+          Compress-Archive -Path dist/pkg/* -DestinationPath $zip -CompressionLevel Optimal
+          $sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          $url = "https://github.com/lsmhq/crown_shop/releases/download/v$v/crown-shop-win-x64-v$v.zip"
+          $notes = "${{ github.event.head_commit.message }}"
+          $notes = ($notes -replace '"', '\"')
+          @{
+            version = $v
+            notes = $notes
+            url = $url
+            sha256 = $sha
+            publishedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+          } | ConvertTo-Json | Set-Content -Path dist/latest.json -Encoding utf8
+          Write-Output "zip=$zip"
+          Write-Output "sha=$sha"
+          "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: v${{ steps.ver.outputs.version }}
+          body: |
+            自动打包构建：v${{ steps.ver.outputs.version }}
+          files: |
+            dist/crown-shop-win-x64-v${{ steps.ver.outputs.version }}.zip
+            dist/latest.json
+          generate_release_notes: true
