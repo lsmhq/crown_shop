@@ -58,6 +58,10 @@ const SettingsPage = {
 
       <div class="card" style="max-width:680px;margin-top:0">
         <div class="card-title">应用更新</div>
+        <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+          <input id="autoUpdateChk" type="checkbox" v-model="autoUpdate" @change="saveAutoUpdate" style="width:16px;height:16px">
+          <label for="autoUpdateChk" style="font-size:13px">自动检测更新 <span class="muted" style="font-size:11px">（启动与打开本页时自动检查并在菜单提示；关闭后仅手动点击「检查更新」）</span></label>
+        </div>
         <div class="muted" style="font-size:12px;margin-bottom:8px">当前版本 <span class="kbd-strong">v{{ upd.current }}</span>，通过 GitHub Releases 自动检测并下载更新。</div>
         <div v-if="upd.status==='checking'" class="muted" style="font-size:12px">正在检查更新…</div>
         <div v-else-if="upd.status==='latest'" class="muted" style="font-size:12px"><span class="badge badge-green">已是最新版本</span></div>
@@ -91,6 +95,7 @@ const SettingsPage = {
       manualRate: null,
       refreshing: false,
       upd: { status: 'idle', current: '0.0.0', latest: null, error: '' },
+      autoUpdate: false,
       applying: false,
     };
   },
@@ -99,10 +104,21 @@ const SettingsPage = {
       try {
         const d = await api('/api/bootstrap');
         this.form = { ...d.settings };
+        this.autoUpdate = d.settings.autoUpdate === true;
         this.dataDir = '/data/';
         this.createdAt = d.settings.createdAt || '';
         this.version = '1.0.0';
         this.loadRate();
+        if (this.autoUpdate) this.checkUpdate(true);
+      } catch (e) { toast(e.message, 'error'); }
+    },
+    async saveAutoUpdate() {
+      const v = this.autoUpdate === true;
+      this.autoUpdate = v;
+      try {
+        await api('/api/settings', { method: 'PUT', body: { autoUpdate: v } });
+        window.__bootstrapDirty = true;
+        toast(v ? '已开启自动检测更新' : '已关闭自动检测更新', 'success');
       } catch (e) { toast(e.message, 'error'); }
     },
     async loadRate() {
@@ -200,5 +216,5 @@ const SettingsPage = {
       } catch (e) { /* process already exited */ }
     },
   },
-  mounted() { this.load(); this.checkUpdate(true); },
+  mounted() { this.load(); },
 };

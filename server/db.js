@@ -18,6 +18,7 @@ function defaultData() {
       nextSeq: 1,
       orderSeq: 1,
       autoBackupDays: 1,
+      autoUpdate: false,
       lastBackupAt: '',
     },
     suppliers: [],
@@ -41,6 +42,7 @@ function normalize() {
     if (typeof s.settings.orderSeq !== 'number') s.settings.orderSeq = defaults.settings.orderSeq;
     if (typeof s.settings.codePrefix !== 'string') s.settings.codePrefix = 'SP';
     if (!s.settings.shopName) s.settings.shopName = '我的小店';
+    if (typeof s.settings.autoUpdate !== 'boolean') s.settings.autoUpdate = false;
   }
   if (!Array.isArray(s.suppliers)) s.suppliers = [];
   if (!Array.isArray(s.customers)) s.customers = [];

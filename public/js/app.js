@@ -117,8 +117,9 @@ const app = createApp({
   },
   created() {
     this.loadRate();
-    this.loadBootstrap();
-    this.silentUpdateCheck();
+    this.loadBootstrap().then(() => {
+      if (this.app.settings.autoUpdate === true) this.silentUpdateCheck();
+    });
     const self = this;
     setInterval(() => {
       if (window.__bootstrapDirty) {

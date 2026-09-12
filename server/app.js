@@ -105,6 +105,7 @@
       const b = normalizeBody(body);
       if (typeof b.shopName === "string" && b.shopName.trim()) s.shopName = b.shopName.trim();
       if (b.autoBackupDays !== void 0) s.autoBackupDays = Math.max(0, Number(b.autoBackupDays) || 1);
+      if (typeof b.autoUpdate === "boolean") s.autoUpdate = b.autoUpdate;
       if (b.usdCnyRate !== void 0 && b.usdCnyRate !== "" && !isNaN(Number(b.usdCnyRate))) {
         s.usdCnyRate = Number(b.usdCnyRate);
         s.rateUpdatedAt = s.rateUpdatedAt || (/* @__PURE__ */ new Date()).toISOString();
